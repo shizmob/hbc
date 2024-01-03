@@ -1,5 +1,6 @@
 
-CFLAGS = -O3 -Wall -I/usr/local/include -L/usr/local/lib
+CFLAGS = -O3 -Wall
+LIBPNGFLAGS = $(shell pkg-config --cflags --libs libpng || printf "%s" "-I/usr/local/include -L/usr/local/lib -lpng")
 
 CC = $(PREFIX)gcc
 STRIP = $(PREFIX)strip
@@ -10,7 +11,7 @@ mkbns$(EXE): mkbns.c
 	$(CC) $(CFLAGS) -o mkbns mkbns.c -lm
 
 png2tpl$(EXE): png2tpl.c
-	$(CC) $(CFLAGS) -o png2tpl png2tpl.c -lpng
+	$(CC) $(CFLAGS) -o png2tpl png2tpl.c $(LIBPNGFLAGS)
 
 lz77$(EXE): lz77.c
 	$(CC) $(CFLAGS) -o lz77 lz77.c

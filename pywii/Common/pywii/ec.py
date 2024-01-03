@@ -3,6 +3,7 @@
 # Copyright 2008  Hector Martin  <marcan@marcansoft.com>
 # Licensed under the terms of the GNU GPL, version 2
 # http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+import sys
 
 from array import array
 from struct import pack, unpack
@@ -11,9 +12,18 @@ try:
 except ImportError:
     from Crypto.Util.number import bytes_to_long, long_to_bytes
 
+if sys.version_info >= (3, 0):
+	long = int
+	def _b(s):
+		return bytes(ord(x) for x in s)
+else:
+	bytes = str
+	def _b(s):
+		return s
+
 # y**2 + x*y = x**3 + x + b
-ec_b = "\x00\x66\x64\x7e\xde\x6c\x33\x2c\x7f\x8c\x09\x23\xbb\x58\x21"+\
-	   "\x3b\x33\x3b\x20\xe9\xce\x42\x81\xfe\x11\x5f\x7d\x8f\x90\xad"
+ec_b = _b("\x00\x66\x64\x7e\xde\x6c\x33\x2c\x7f\x8c\x09\x23\xbb\x58\x21"+\
+	      "\x3b\x33\x3b\x20\xe9\xce\x42\x81\xfe\x11\x5f\x7d\x8f\x90\xad")
 
 def hexdump(s,sep=""):
 	return sep.join(map(lambda x: "%02x"%ord(x),s))
@@ -49,12 +59,12 @@ class ByteArray(array):
 
 class ELT_PY:
 	SIZEBITS=233
-	SIZE=(SIZEBITS+7)/8
-	square = ByteArray("\x00\x01\x04\x05\x10\x11\x14\x15\x40\x41\x44\x45\x50\x51\x54\x55")
+	SIZE=int((SIZEBITS+7)/8)
+	square = ByteArray(_b("\x00\x01\x04\x05\x10\x11\x14\x15\x40\x41\x44\x45\x50\x51\x54\x55"))
 	def __init__(self, initializer=None):
 		if isinstance(initializer, long) or isinstance(initializer, int):
 			self.d = ByteArray(long_to_bytes(initializer,self.SIZE))
-		elif isinstance(initializer, str):
+		elif isinstance(initializer, str) or isinstance(initializer, bytes):
 			self.d = ByteArray(initializer)
 		elif isinstance(initializer, ByteArray):
 			self.d = ByteArray(initializer)
@@ -67,7 +77,7 @@ class ELT_PY:
 		else:
 			raise TypeError("Invalid initializer type")
 		if len(self.d) != self.SIZE:
-			raise ValueError("ELT size must be 30")
+			raise ValueError("ELT size must be %d, is %d" % (self.SIZE,len(self.d)))
 		
 	def __cmp__(self, other):
 		if other == 0: #exception
@@ -207,7 +217,7 @@ else:
 
 class Point:
 	def __init__(self,x,y=None):
-		if isinstance(x,str) and (y is None) and (len(x) == 60):
+		if (isinstance(x,str) or isinstance(x,bytes)) and (y is None) and (len(x) == 60):
 			self.x = ELT(x[:30])
 			self.y = ELT(x[30:])
 		elif isinstance(x,Point):
@@ -305,15 +315,15 @@ def bn_inv(a,N):
 
 # order of the addition group of points
 ec_N = bytes_to_long(
-			"\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"+\
-			"\x13\xe9\x74\xe7\x2f\x8a\x69\x22\x03\x1d\x26\x03\xcf\xe0\xd7")
+			_b("\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"+\
+			   "\x13\xe9\x74\xe7\x2f\x8a\x69\x22\x03\x1d\x26\x03\xcf\xe0\xd7"))
 
 # base point
 ec_G = Point(
-	"\x00\xfa\xc9\xdf\xcb\xac\x83\x13\xbb\x21\x39\xf1\xbb\x75\x5f"+
-	"\xef\x65\xbc\x39\x1f\x8b\x36\xf8\xf8\xeb\x73\x71\xfd\x55\x8b"+
-	"\x01\x00\x6a\x08\xa4\x19\x03\x35\x06\x78\xe5\x85\x28\xbe\xbf"+
-	"\x8a\x0b\xef\xf8\x67\xa7\xca\x36\x71\x6f\x7e\x01\xf8\x10\x52")
+	_b("\x00\xfa\xc9\xdf\xcb\xac\x83\x13\xbb\x21\x39\xf1\xbb\x75\x5f"+
+	   "\xef\x65\xbc\x39\x1f\x8b\x36\xf8\xf8\xeb\x73\x71\xfd\x55\x8b"+
+	   "\x01\x00\x6a\x08\xa4\x19\x03\x35\x06\x78\xe5\x85\x28\xbe\xbf"+
+	   "\x8a\x0b\xef\xf8\x67\xa7\xca\x36\x71\x6f\x7e\x01\xf8\x10\x52"))
 
 def generate_ecdsa(k, sha):
 	k = bytes_to_long(k)

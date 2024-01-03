@@ -1,10 +1,18 @@
 import struct, sys
 
+if sys.version_info >= (3, 0):
+	def _b(s):
+		return bytes(ord(x) for x in s)
+else:
+	bytes = str
+	def _b(s):
+		return s
+
 class StructType(tuple):
 	def __getitem__(self, value):
 		return [self] * value
 	def __call__(self, value, endian='<'):
-		if isinstance(value, str):
+		if isinstance(value, str) or isinstance(value, bytes):
 			return struct.unpack(endian + tuple.__getitem__(self, 0), value[:tuple.__getitem__(self, 1)])[0]
 		else:
 			return struct.pack(endian + tuple.__getitem__(self, 0), value)
@@ -13,7 +21,7 @@ class StructException(Exception):
 	pass
 
 class Struct(object):
-	__slots__ = ('__attrs__', '__baked__', '__defs__', '__endian__', '__next__', '__sizes__', '__values__')
+	__slots__ = ('__attrs__', '__baked__', '__defs__', '__next__', '__sizes__', '__values__')
 	int8 = StructType(('b', 1))
 	uint8 = StructType(('B', 1))
 	
@@ -150,7 +158,7 @@ class Struct(object):
 			
 			if sdef == Struct.string:
 				size, offset, encoding, stripNulls, value = size
-				if isinstance(size, str):
+				if isinstance(size, str) or isinstance(size, bytes):
 					size = self.__values__[size] + offset
 			elif sdef == Struct:
 				if attrs[0] == '*':
@@ -179,7 +187,7 @@ class Struct(object):
 			
 			if sdef == Struct.string:
 				size, offset, encoding, stripNulls, value = size
-				if isinstance(size, str):
+				if isinstance(size, str) or isinstance(size, bytes):
 					size = self.__values__[size] + offset
 				
 				temp = data[pos:pos+size]
@@ -231,13 +239,13 @@ class Struct(object):
 	def pack(self):
 		arraypos, arrayname = None, None
 		
-		ret = ''
+		ret = _b('')
 		for i in range(len(self.__defs__)):
 			sdef, size, attrs = self.__defs__[i], self.__sizes__[i], self.__attrs__[i]
 			
 			if sdef == Struct.string:
 				size, offset, encoding, stripNulls, value = size
-				if isinstance(size, str):
+				if isinstance(size, str) or isinstance(size, bytes):
 					size = self.__values__[size]+offset
 				
 				if attrs[0] == '*':
@@ -249,11 +257,9 @@ class Struct(object):
 				else:
 					temp = self.__values__[attrs]
 				
-				if encoding != None:
-					temp = temp.encode(encoding)
-				
+				temp = temp.encode(encoding or 'ascii')
 				temp = temp[:size]
-				ret += temp + ('\0' * (size - len(temp)))
+				ret += temp + (_b('\0') * (size - len(temp)))
 			elif sdef == Struct:
 				if attrs[0] == '*':
 					if arrayname != attrs:
@@ -308,7 +314,7 @@ if __name__=='__main__':
 	assert test.hax.thing1 == 0xBEBAFECA
 	assert test.hax.thing2 == 0xCAFEBABE
 	
-	print 'Tests successful'
+	print('Tests successful')
 	
 	"""
 	@Struct.LE

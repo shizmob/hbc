@@ -3,6 +3,7 @@ TYPE = $(notdir $(CURDIR))
 
 PNGS = $(wildcard *.png)
 TPLS = $(patsubst %.png,../build/$(TYPE)/arc/timg/%.tpl,$(PNGS))
+PYTHON = python2
 
 ../build/data/meta/$(TYPE).bin : ../build/$(TYPE).lz77
 	@[ ! -d ../build/data/meta ] && mkdir -p ../build/data/meta || true
@@ -19,7 +20,7 @@ endif
 ../build/$(TYPE)/arc/blyt/$(TYPE).brlyt $(ANIMS) : mk$(TYPE).py
 	@[ ! -d ../build/$(TYPE)/arc/anim ] && mkdir -p ../build/$(TYPE)/arc/anim || true
 	@[ ! -d ../build/$(TYPE)/arc/blyt ] && mkdir -p ../build/$(TYPE)/arc/blyt || true
-	python2 mk$(TYPE).py ../build/$(TYPE)/arc/blyt/$(TYPE).brlyt $(ANIMS)
+	$(PYTHON) mk$(TYPE).py ../build/$(TYPE)/arc/blyt/$(TYPE).brlyt $(ANIMS)
 
 ../build/$(TYPE).arc : $(TPLS) ../build/$(TYPE)/arc/blyt/$(TYPE).brlyt $(ANIMS)
 	$(ARCPACK) ../build/$(TYPE).arc ../build/$(TYPE)
